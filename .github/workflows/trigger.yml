@@ -2,20 +2,21 @@
 name: Cross Repository Dispatch Trigger
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       message:
-        description: 'Message à envoyer'
+        description: "Message à envoyer"
         required: false
-        default: 'Hello from API trigger!'
+        default: "Hello from API trigger!"
       event_type:
-        description: 'Type'
+        description: "Type"
         required: false
-        default: 'custom-event'
+        default: "custom-event"
       target_repo:
-        description: 'Repository cible (format: owner/repo)'
+        description: "Repository cible (format: owner/repo)"
         required: false
-        default: 'tanyaatibouche/test2'
+        default: "tanyaatibouche/test2"
 
 jobs:
   trigger-dispatch:
@@ -23,7 +24,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Trigger repository dispatch via API
         run: |
           response=$(curl -s -w "%{http_code}" -X POST \
@@ -43,13 +44,13 @@ jobs:
                 "trigger_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
               }
             }')
-          
+
           # Extraire le code de statut HTTP
           http_code="${response: -3}"
           response_body="${response%???}"
-          
+
           echo "HTTP Status: $http_code"
-          
+
           if [ "$http_code" = "204" ]; then
             echo "✅ Repository dispatch envoyé avec succès!"
           else
@@ -57,7 +58,7 @@ jobs:
             echo "Response: $response_body"
             exit 1
           fi
-      
+
       - name: Confirm API call
         run: |
           echo "✅ Repository dispatch envoyé via API GitHub"

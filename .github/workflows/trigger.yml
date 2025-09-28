@@ -1,8 +1,22 @@
 # .github/workflows/trigger.yml
-name: Repository Dispatch API Trigger
+name: Cross Repository Dispatch Trigger
 
 on:
   workflow_dispatch:
+    inputs:
+      message:
+        description: 'Message à envoyer'
+        required: false
+        default: 'Hello from API trigger!'
+      event_type:
+        description: 'Type d\'événement'
+        required: false
+        default: 'custom-event'
+      target_repo:
+        description: 'Repository cible (format: owner/repo)'
+        required: false
+        default: 'tanyaatibouche/test2'
+
 jobs:
   trigger-dispatch:
     runs-on: ubuntu-latest
@@ -12,25 +26,43 @@ jobs:
       
       - name: Trigger repository dispatch via API
         run: |
-          curl -X POST \
+          response=$(curl -s -w "%{http_code}" -X POST \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.GITHUB_PAT }}" \
             -H "Content-Type: application/json" \
-            https://api.github.com/repos/tanyaatibouche/test2/dispatches \
+            https://api.github.com/repos/${{ github.event.inputs.target_repo || 'tanyaatibouche/test2' }}/dispatches \
             -d '{
               "event_type": "${{ github.event.inputs.event_type || 'custom-event' }}",
               "client_payload": {
                 "message": "${{ github.event.inputs.message || 'Hello from API trigger!' }}",
                 "sender": "${{ github.actor }}",
+                "source_repo": "${{ github.repository }}",
                 "timestamp": "${{ github.run_id }}",
-                "repository": "${{ github.repository }}",
-                "workflow_run_id": "${{ github.run_id }}"
+                "target_repository": "${{ github.event.inputs.target_repo || 'tanyaatibouche/test2' }}",
+                "workflow_run_id": "${{ github.run_id }}",
+                "trigger_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
               }
-            }'
+            }')
+          
+          # Extraire le code de statut HTTP
+          http_code="${response: -3}"
+          response_body="${response%???}"
+          
+          echo "HTTP Status: $http_code"
+          
+          if [ "$http_code" = "204" ]; then
+            echo "✅ Repository dispatch envoyé avec succès!"
+          else
+            echo "❌ Erreur lors de l'envoi du repository dispatch"
+            echo "Response: $response_body"
+            exit 1
+          fi
       
       - name: Confirm API call
         run: |
-          echo " Repository dispatch envoyé via API GitHub"
+          echo "✅ Repository dispatch envoyé via API GitHub"
+          echo "Repository source: ${{ github.repository }}"
+          echo "Repository cible: ${{ github.event.inputs.target_repo || 'tanyaatibouche/test2' }}"
           echo "Event type: ${{ github.event.inputs.event_type || 'custom-event' }}"
           echo "Message: ${{ github.event.inputs.message || 'Hello from API trigger!' }}"
-          echo "Repository: ${{ github.repository }}"
+          echo "Sender: ${{ github.actor }}"

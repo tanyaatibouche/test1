@@ -9,7 +9,7 @@ on:
         required: false
         default: 'Hello from API trigger!'
       event_type:
-        description: 'Type d\'événement'
+        description: 'Type'
         required: false
         default: 'custom-event'
       target_repo:
